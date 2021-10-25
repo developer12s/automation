@@ -1,0 +1,17 @@
+
+[use Boto3 doc for all these methods ]
+
+[start/stop instance]
+
+import boto3
+from pprint import pprint   ->> print the output in json format
+
+client =boto3.client("ec2")
+tag_test_env={'Name': 'tag:','Values': ['yes']} -->>pass the tags and value on which env need to start/stop vm
+
+for each_ins in client.describe_instance(Filters=[tags_test_env])['Reservations']:->>  shows the instances in dictionery format
+    for inst_id in each_ins['Instances']
+      pprint(inst_id['InstanceId'])
+     client.start_instances(InstanceIda=[inst_id["InstanceId"]])
+
+

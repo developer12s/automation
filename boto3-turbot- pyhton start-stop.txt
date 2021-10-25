@@ -1,0 +1,86 @@
+ pipeline{
+   agent any
+    parameters{
+      password(name:'turbot_access_key_password',descrption: 'Encryption key')
+password (name: 'turbot_secret_key_password' ,description : 'Encryption key')
+string (name: 'user1_email', defsault_value: 'mailid' description: 'Encryption key')
+string( name: 'user2_email', defsault_value: 'mailid' description: 'Encryption key')
+}
+stages{
+stage('checkout'){
+steps{
+git branch :, credentialsId: '',  url :'github url'
+}
+}
+ stages('creating tubot profile for user'){
+steps{
+sh '''#!/bin/bash
+act_name=($(tail -n +2 listofsample.csv | cut -d, -f2))
+unique_act=(${printf "%s" "${act_name[@]}" | sort -u))
+aws configure set default.turbot_host biib.aws.biogen.com/
+aws configure set default.turbot_access_key_id $turbot_access_key_password
+aws configure set default.turbot_secret_access_key $turbot_secret_key_password
+
+for i in "${unique_act[@]}"
+do
+echo "creating temp credentials for account $i"
+turbot-aws -a $i sts egt-caller-identity --query 'ARN' 2>/dev/null
+done'''
+}
+}
+stage('read csv file and creating start and stop csv file')
+steps{
+ sh '''#!/bin/bash
+echo Running script for local time $(date +%A,%H)H hours
+mapfile -t rawdate <<(sed 1d listofsample.csv)
+inst_ids=()
+act_name=()
+day=()
+start_time=()
+stop_time=()
+
+test="this is test"
+for line in "${rawdata[@]}"; do
+IFS = , read -ra fields <<"$line"
+day=("${fields[2]}")
+start_time=("${fields[3]}")
+stop_time=("${fields[4]}")
+then
+echo $line >> start_servers.csv
+elis[[ $day ==$(date +%A) && $stop_time ==$(date +%H) ]];
+then echo $line >> stop_servers.csv
+fi 
+ done'''
+  }
+}
+stage ('running playbook to stop instance')
+ steps{
+sh '''#!/bin/bash
+     data <<(cat stop.server.csv)
+     test="this is test"
+for line in "${rawdata[@]}"; do
+IFS = , read -ra fields <<"$line"
+inst_ids=("${fields[0]}")
+act_name=("${fields[1]}")
+day=("${fields[2]}")
+start_time=("${fields[1]}")
+stop_time=("${fields[4]}")
+
+echo ("Running $bamboo_start_stop playbook for $int_ids in $act_name")
+echo $inst_ids
+cd /var/lib/jenkins/workspace/spacename
+/bin/ansible-playbook main.yml -e "act_name=$act_name" -e "inst_ids=$inst_ids" --tags "stop"
+ done
+cd /var/lib/jenkins/workspace/spacename
+/bin/ansible-playbook mail.yml -e "email_id=$user1_email" -e "email_id=$user2_email"  --tags "stop"'''
+}
+}
+stage('clean working directory'){
+steps{
+sh '''#!/bin/bash
+cd /usr/lib/jenkins/workspace/spacename
+rm -rf ./*'''
+}
+}
+}
+}
