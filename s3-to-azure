@@ -1,0 +1,71 @@
+import json
+import boto3
+import urllib
+import os
+os.environ["GIT_PYTHON_REFRESH"] = "quiet"
+import git
+from git import Repo
+
+
+def lambda_handler(event, context):
+    os.chdir('/tmp')
+    s3=boto3.client('s3',aws_access_key_id=os.environ['aws_access_key_id'],
+                      aws_secret_access_key=os.environ['aws_secret_access_key'],
+                      region_name=os.environ['region_name'])
+    S3=boto3.resource('s3')
+    if not os.path.exists(os.path.join('mydir')):
+        os.makedirs('mydir')
+        os.chdir('mydir')
+        bucket_name=event['Records'][0]['s3']['bucket']['name']
+        key=event['Records'][0]['s3']['object']['key']
+        keys= urllib.parse.unquote_plus(key, encoding = 'utf-8')
+        message='Newly uploaded file '+ keys + ' to this bucket name '+ bucket_name 
+        print(message)
+        
+        get_last_modified = lambda obj: int(obj.last_modified.strftime('%s'))
+        bckt = S3.Bucket(bucket_name)
+        objs = [obj for obj in bckt.objects.all()]
+
+        objs = [obj for obj in sorted(objs, key=get_last_modified)]
+        last_added = objs[-1].key
+        
+        print("updated file in folder:",last_added)
+        
+        #s3.download_file(bucket_name, keys, 's3://test1-bucket23/demo/')
+        with open(keys, 'wb') as f:
+            s3.download_fileobj(bucket_name, keys, f)
+        
+        
+        os.system("touch s3file.tar")
+        mys3file=open("s3file.tar","w")
+        mys3file.write(last_added)
+        
+        print(os.system("ls -al"))
+        print(os.getcwd())
+        
+        #print(os.system("export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib"))
+        
+        os.system("git --version")
+        os.system("git init" )
+        os.system("git config  user.name 'lokesh'")
+        os.system("git config  user.email 'slokesh2912@gmail.com'")
+        
+        os.system("git remote add origin https://github.com/developer12s/test.git")
+        os.system("git add .")
+       
+        os.system("git commit -m  'initial commit' ")
+        os.system("git status")
+        os.system("git branch -M main")
+        os.system("git push -u origin main")
+        
+        
+        os.makedirs('clonedir')
+        print(os.listdir())
+        cloneUrl="https://github.com/developer12s/test.git"
+        os.chdir('clonedir')
+        localRepopath="clonedir"
+        
+    
+        repo = git.Repo.clone_from(cloneUrl, localRepopath)
+        
+     
